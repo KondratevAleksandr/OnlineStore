@@ -1,13 +1,10 @@
 package com.example.OnlineStore.controller;
 
-import com.example.OnlineStore.entity.Order;
 import com.example.OnlineStore.service.OrderService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/orders")
@@ -19,27 +16,47 @@ public class OrderController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Order> getOrderById(@PathVariable Integer id) {
-        return orderService.getOrderById(id)
-                .map(order -> ResponseEntity.ok().body(order))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<String> getOrderById(@PathVariable Integer id) {
+        try {
+            String orderJson = orderService.getOrderById(id);
+            if (orderJson != null) {
+                return ResponseEntity.ok().body(orderJson);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch(RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping
-    public List<Order> getAllOrders() {
-        return orderService.getAllOrders();
+    public ResponseEntity<String> getAllOrders() {
+        try {
+            String orderJson = orderService.getAllOrders();
+            return ResponseEntity.ok().body(orderJson);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @PostMapping
-    public ResponseEntity<Order> createOrder(@Validated @RequestBody Order order) {
-        Order createdOrder = orderService.createOrder(order);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
+    public ResponseEntity<String> createOrder(@RequestBody String orderJson) {
+        try {
+            String createdOrderJson = orderService.createOrder(orderJson);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdOrderJson);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Order> updateOrder(@PathVariable Integer id, @Validated @RequestBody Order orderDetails) {
-        Order updatedOrder = orderService.updateOrder(id, orderDetails);
-        return ResponseEntity.ok(updatedOrder);
+    public ResponseEntity<String> updateOrder(@PathVariable Integer id, @RequestBody String orderJson) {
+        try {
+            String updatedOrderJson = orderService.updateOrder(id, orderJson);
+            return ResponseEntity.ok(updatedOrderJson);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/{id}")

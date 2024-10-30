@@ -1,13 +1,9 @@
 package com.example.OnlineStore.controller;
 
-import com.example.OnlineStore.entity.Customer;
 import com.example.OnlineStore.service.CustomerService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/customers")
@@ -19,27 +15,47 @@ public class CustomerController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Customer> getCustomerById(@PathVariable Integer id) {
-        return customerService.getCustomerById(id)
-                .map(customer -> ResponseEntity.ok().body(customer))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<String> getCustomerById(@PathVariable Integer id) {
+        try {
+            String customerJson = customerService.getCustomerById(id);
+            if (customerJson != null) {
+                return ResponseEntity.ok().body(customerJson);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping
-    public List<Customer> getAllCustomers() {
-        return customerService.getAllCustomers();
+    public ResponseEntity<String> getAllCustomers() {
+        try {
+            String customersJson = customerService.getAllCustomers();
+            return ResponseEntity.ok().body(customersJson);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @PostMapping
-    public ResponseEntity<Customer> createCustomer(@Validated @RequestBody Customer customer) {
-        Customer createdCustomer = customerService.createCustomer(customer);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdCustomer);
+    public ResponseEntity<String> createCustomer(@RequestBody String customerJson) {
+        try {
+            String createdCustomerJson = customerService.createCustomer(customerJson);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdCustomerJson);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Customer> updateCustomer(@PathVariable Integer id, @Validated @RequestBody Customer customerDetails) {
-        Customer updatedCustomer = customerService.updateCustomer(id, customerDetails);
-        return ResponseEntity.ok(updatedCustomer);
+    public ResponseEntity<String> updateCustomer(@PathVariable Integer id, @RequestBody String customerJson) {
+        try {
+            String updatedCustomerJson = customerService.updateCustomer(id, customerJson);
+            return ResponseEntity.ok(updatedCustomerJson);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/{id}")

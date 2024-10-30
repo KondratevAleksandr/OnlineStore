@@ -1,13 +1,9 @@
 package com.example.OnlineStore.controller;
 
-import com.example.OnlineStore.entity.Product;
 import com.example.OnlineStore.service.ProductService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/products")
@@ -19,27 +15,47 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Integer id) {
-        return productService.getProductById(id)
-                .map(product -> ResponseEntity.ok().body(product))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<String> getProductById(@PathVariable Integer id) {
+        try {
+            String productJson = productService.getProductById(id);
+            if (productJson != null) {
+                return ResponseEntity.ok().body(productJson);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping
-    public List<Product> getAllProducts() {
-        return productService.getAllProducts();
+    public ResponseEntity<String> getAllProducts() {
+        try {
+            String productsJson = productService.getAllProducts();
+            return ResponseEntity.ok().body(productsJson);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @PostMapping
-    public ResponseEntity<Product> createProduct(@Validated @RequestBody Product product) {
-        Product createProduct = productService.createProduct(product);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createProduct);
+    public ResponseEntity<String> createProduct(@RequestBody String productJson) {
+        try {
+            String createProductJson = productService.createProduct(productJson);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createProductJson);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Integer id, @Validated @RequestBody Product productDetails) {
-        Product updatedProduct = productService.updateProduct(id, productDetails);
-        return ResponseEntity.ok(updatedProduct);
+    public ResponseEntity<String> updateProduct(@PathVariable Integer id, @RequestBody String productJson) {
+        try {
+            String updatedProductJson = productService.updateProduct(id, productJson);
+            return ResponseEntity.ok(updatedProductJson);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/{id}")

@@ -1,110 +1,93 @@
 package com.example.OnlineStore.controller;
 
-import com.example.OnlineStore.entity.Product;
 import com.example.OnlineStore.service.ProductService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
-import java.util.Collections;
-import java.util.Optional;
-
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(ProductController.class)
 public class ProductControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @InjectMocks
+    private ProductController productController;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockBean
+    @Mock
     private ProductService productService;
 
     @BeforeEach
     public void setUp() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void shouldReturn_AllProducts() throws Exception {
-        Product product = new Product();
-        product.setProductId(1);
-        product.setName("Product 1");
-        product.setPrice(99.99);
-        product.setQuantityInStock(10);
+    public void shouldReturn_ProductById() {
+        String productJson = "{\"id\":1,\"name\":\"Product A\"}";
+        when(productService.getProductById(1)).thenReturn(productJson);
 
-        when(productService.getAllProducts()).thenReturn(Collections.singletonList(product));
+        ResponseEntity<String> response = productController.getProductById(1);
 
-        mockMvc.perform(get("/products"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$[0].name").value("Product 1"));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(productJson, response.getBody());
     }
 
     @Test
-    public void shouldReturn_ProductByCurrentId() throws Exception {
-        Product product = new Product();
-        product.setProductId(1);
-        product.setName("Product 1");
-        product.setPrice(99.99);
-        product.setQuantityInStock(10);
+    public void shouldReturn_NotFoundWhenProductNotExists() {
+        when(productService.getProductById(anyInt())).thenThrow(new RuntimeException("Product not found"));
 
-        when(productService.getProductById(anyInt())).thenReturn(Optional.of(product));
+        ResponseEntity<String> response = productController.getProductById(1);
 
-        mockMvc.perform(get("/products/1"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name").value("Product 1"));
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 
     @Test
-    public void shouldCreate_NewProduct() throws Exception {
-        Product product = new Product();
-        product.setName("Product 2");
-        product.setPrice(49.99);
-        product.setQuantityInStock(20);
+    public void shouldReturn_AllProducts() {
+        String productsJson = "[{\"id\":1,\"name\":\"Product A\"}]";
+        when(productService.getAllProducts()).thenReturn(productsJson);
 
-        when(productService.createProduct(any(Product.class))).thenReturn(product);
+        ResponseEntity<String> response = productController.getAllProducts();
 
-        mockMvc.perform(post("/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(product)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("Product 2"));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(productsJson, response.getBody());
     }
 
     @Test
-    public void shouldUpdate_ExistingProduct() throws Exception {
-        Product product = new Product();
-        product.setProductId(1);
-        product.setName("Updated Product");
-        product.setPrice(59.99);
-        product.setQuantityInStock(15);
+    public void shouldReturn_CreatedProduct() {
+        String productJson = "{\"name\":\"Product A\"}";
+        String createdProductJson = "{\"id\":1,\"name\":\"Product A\"}";
+        when(productService.createProduct(productJson)).thenReturn(createdProductJson);
 
-        when(productService.updateProduct(anyInt(), any(Product.class))).thenReturn(product);
+        ResponseEntity<String> response = productController.createProduct(productJson);
 
-        mockMvc.perform(put("/products/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(product)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Updated Product"));
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(createdProductJson, response.getBody());
     }
 
     @Test
-    public void shouldDelete_Product() throws Exception {
-        mockMvc.perform(delete("/products/1"))
-                .andExpect(status().isNoContent());
+    public void shouldReturn_UpdatedProduct() {
+        String productJson = "{\"name\":\"Product A Updated\"}";
+        String updatedProductJson = "{\"id\":1,\"name\":\"Product A Updated\"}";
+        when(productService.updateProduct(1, productJson)).thenReturn(updatedProductJson);
+
+        ResponseEntity<String> response = productController.updateProduct(1, productJson);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(updatedProductJson, response.getBody());
+    }
+
+    @Test
+    public void shouldReturn_NoContentOnDelete() {
+        doNothing().when(productService).deleteProduct(1);
+
+        ResponseEntity<Void> response = productController.deleteProduct(1);
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
     }
 }
-
